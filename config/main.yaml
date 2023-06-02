@@ -1,0 +1,13 @@
+defaults:
+  - data: data1
+  - model: model1
+  - _self_
+  
+number_of_cpu_cores_for_multiprocessing: 10
+
+hydra:
+  run:
+    dir: ./outputs/hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+process:
+  name: ${data.name}_${model.name}

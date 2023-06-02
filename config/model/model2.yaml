@@ -1,0 +1,31 @@
+name: model2
+
+data_loader:
+  batch_size: 64
+  num_workers: 4
+  shuffle: False
+
+checkpoints:
+  dirpath: models/checkpoints
+  monitor: Val Acc
+  save_top_k: 3
+  mode: max
+
+entire:
+  dir: models/entire
+  name: model2.pt
+  path: ${..entire.dir}/${..entire.name}
+
+performance_metrics:
+  dir: outputs/models/performance_metrics
+
+prediction_results:
+  dir: outputs/figures/model_prediction_results
+
+pytorch_lightning_trainer:
+  gpus: 1
+  log_every_n_steps: 1
+  max_epochs: 35
+
+training_logs:
+  dir: models/training_logs

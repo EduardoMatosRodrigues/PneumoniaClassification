@@ -1,0 +1,32 @@
+name: data2
+size: -1
+
+raw:
+  training:
+    dir: data/raw/training
+  training_labels:
+    dir: data/raw
+    name: training_labels.csv
+    path: ${..training_labels.dir}/${..training_labels.name}
+  validation:
+    split_fraction: 0.2
+  test:
+    dir: data/raw/test
+    split_fraction: 0.2
+
+processed:
+  dir: data/processed/data2
+  training:
+    dir: data/processed/data2/training
+  validation:
+    dir: data/processed/data2/validation
+  test:
+    dir: data/processed/data2/test
+
+final:
+  dir: data/final
+
+statistics:
+  dir: data/processed
+  name: processed_training_data_statistics.json
+  path: ${..statistics.dir}/${..statistics.name}
