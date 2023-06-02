@@ -11,7 +11,7 @@ install:
 	conda deactivate
 	
 install_package:
-	@echo ""; echo "Installing package \"$(name)\" inside the $(ANACONDA_VENV_NAME) environment..."; echo ""; \
+	@echo ""; echo "Installing \"$(name)\" package inside the $(ANACONDA_VENV_NAME) environment..."; echo ""; \
 	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
 	$(ANACONDA_DIR)/envs/$(ANACONDA_VENV_NAME)/bin/pip install $(name) && conda deactivate
 
@@ -162,6 +162,27 @@ git_flow_release_finish:
 	git branch -d release/$$PROJECT_VERSION; \
 	echo ""; echo "Running 'git push -d origin release/$${PROJECT_VERSION}'..."; \
 	git push -d origin release/$$PROJECT_VERSION
+
+dvc_flow_initialize:
+	@echo ""; echo "Installing \"dvc\" package inside the $(ANACONDA_VENV_NAME) environment..."; echo ""; \
+	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	$(ANACONDA_DIR)/envs/$(ANACONDA_VENV_NAME)/bin/pip install dvc; \
+	echo ""; echo "Initializing \"dvc\"..."; \
+	dvc init && conda deactivate
+
+dvc_flow_setup:
+	@echo ""; echo "Configuring your remote storage with DVC..."; echo ""; \
+	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	dvc add data/.; \
+	dvc add models/.; \
+	dvc remote add origin https://dagshub.com/EduardoMatosRodrigues/PneumoniaClassification.dvc; \
+	dvc remote modify origin --local auth basic; \
+	dvc remote modify origin --local user $(user); \
+	dvc remote modify origin --local password $(password); \
+	git add .; \
+	git commit -m "Added dvc"; \
+	git push; \
+	dvc push -r origin && conda deactivate
 
 pull_data: poetry run dvc pull
 
