@@ -163,45 +163,31 @@ git_flow_release_finish:
 	echo ""; echo "Running 'git push -d origin release/$${PROJECT_VERSION}'..."; \
 	git push -d origin release/$$PROJECT_VERSION
 
-dvc_flow_initialize:
-	@echo ""; echo "Installing \"dvc\" package inside the $(ANACONDA_VENV_NAME) environment..."; echo ""; \
-	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
-	$(ANACONDA_DIR)/envs/$(ANACONDA_VENV_NAME)/bin/pip install dvc; \
-	echo ""; echo "Initializing \"dvc\"..."; \
-	dvc init && conda deactivate
-
-dvc_flow_setup:
-	@echo ""; echo "Configuring your remote storage with DVC..."; echo ""; \
-	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
-	dvc add data/.; \
-	dvc add models/.; \
-	dvc remote add origin https://dagshub.com/EduardoMatosRodrigues/PneumoniaClassification.dvc; \
-	dvc remote modify origin --local auth basic; \
-	dvc remote modify origin --local user $(user); \
-	dvc remote modify origin --local password $(password); \
-	git add .; \
-	git commit -m "Added dvc"; \
-	git push; \
-	dvc push -r origin && conda deactivate
-
-pull_data: poetry run dvc pull
-
 setup: git_flow_initialize install
 
-test: pytest
-
 process_data:
-	@echo ""; echo "[ML pipeline step 1/4] Processing the data..."; echo ""; \
-	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	@echo ""; echo "[ML pipeline step 1/4] Processing the data..."
+ifeq ($(data),)
+	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
 	python3 src/process_data.py && conda deactivate; echo ""
+else
+	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/process_data.py data=$(data) && conda deactivate; echo ""
+endif
 
 generate_data_statistics:
-	@echo ""; echo "[ML pipeline step 2/4] Generating the data statistics..."; echo ""; \
-	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	@echo ""; echo "[ML pipeline step 2/4] Generating the data statistics..."
+ifeq ($(data),)
+	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
 	python3 src/generate_data_statistics.py && conda deactivate; echo ""
+else
+	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/generate_data_statistics.py data=$(data) && conda deactivate; echo ""
+endif
 
 train_model:
-	@echo ""; echo "[ML pipeline step 3/4] Training the model..."; echo ""
+	@echo ""; echo "[ML pipeline step 3/4] Training the model..."
+ifeq ($(data),)
 ifeq ($(model),)
 	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
 	python3 src/train_model.py && conda deactivate; echo ""
@@ -209,26 +195,42 @@ else
 	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
 	python3 src/train_model.py model=$(model) && conda deactivate; echo ""
 endif
+else
+ifeq ($(model),)
+	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/train_model.py data=$(data) && conda deactivate; echo ""
+else
+	@echo ""; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/train_model.py data=$(data) model=$(model) && conda deactivate; echo ""
+endif
+endif
 
 test_model:
-	@echo ""; echo "[ML pipeline step 4/4] Testing the model..."; echo ""; \
-	source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	@echo ""; echo "[ML pipeline step 4/4] Testing the model..."
+ifeq ($(data),)
+ifeq ($(model),)
+	@echo "nada"; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
 	python3 src/test_model.py && conda deactivate; echo ""
+else
+	@echo "$(model)"; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/test_model.py model=$(model) && conda deactivate; echo ""
+endif
+else
+ifeq ($(model),)
+	@echo "$(data)"; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/test_model.py data=$(data) && conda deactivate; echo ""
+else
+	@echo "$(data)_$(model)"; source $(ANACONDA_DIR)/bin/activate && conda activate $(ANACONDA_VENV_NAME); \
+	python3 src/test_model.py data=$(data) model=$(model) && conda deactivate; echo ""
+endif
+endif
 
 pipeline_full: process_data generate_data_statistics train_model test_model
 
 pipeline_train_test: train_model test_model
 
-docs_view:
-	@echo View API documentation... 
-	pdoc src --http localhost:8080
-
-docs_save:
-	@echo Save documentation to docs... 
-	pdoc src -o docs
-
-## Delete all compiled Python files
 clean:
+	@echo ""; echo "Deleting all compiled Python files..."
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 	rm -rf .pytest_cache
